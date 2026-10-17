@@ -1,0 +1,41 @@
+## Copyright (C) 2026 - 2026 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
+## See the file COPYING for copying conditions.
+
+## AI-Assisted
+
+## Living regression guard: re-assert the mount symlink-follow envelope on every
+## push. push: is REQUIRED -- org-ai-assisted has no required status checks, so a
+## pull_request-only trigger would never run.
+
+name: repro
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repro:
+    ## CI runs only where we enabled it. Unset variable -> the job is skipped,
+    ## the run stays green, and forks are not handed a red X for a lane they did
+    ## not opt into.
+    if: vars.CI_ENABLED_ORG_AI_ASSISTED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Run mount symlink-refusal repro (asserts the envelope)
+        ## Root via the runner's passwordless sudo + `unshare --mount` works
+        ## regardless of ubuntu-24.04's AppArmor unprivileged-userns restriction.
+        ## driver.sh exits non-zero if any verdict changes, failing the job.
+        run: sudo ./driver.sh

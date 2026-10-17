@@ -1,0 +1,93 @@
+=== util-linux ===
+mount from util-linux 2.41.5 (libmount 2.41.5: selinux, smack, btrfs, verity, namespaces, idmapping, fd-based-mount, statmount, statx, assert, debug)
+=== namespace form ===
+unshare --mount --
+
+===== plain / tgt / dir / '' (expect FOLLOWED_VULNERABLE) =====
+  plain bind, dir-symlink target, exact
+mount_rc=0
+mount_stderr=
+VERDICT=FOLLOWED_VULNERABLE
+ok   plain/tgt/dir/'': FOLLOWED_VULNERABLE
+
+===== flag / tgt / dir / '' (expect REFUSED_SAFE) =====
+  --no-canonicalize, dir-symlink target, exact
+mount_rc=32
+mount_stderr=mount: /tmp/user/0/tmp.3YBfGJi9W5/tgt: wrong fs type, bad option, bad superblock on /tmp/user/0/tmp.3YBfGJi9W5/src, missing codepage or helper program, or other error.
+       dmesg(1) may have more information after failed mount system call.
+VERDICT=REFUSED_SAFE
+ok   flag/tgt/dir/'': REFUSED_SAFE
+
+===== opt / tgt / dir / '' (expect REFUSED_SAFE) =====
+  X-mount.nocanonicalize, dir-symlink target, exact
+mount_rc=32
+mount_stderr=mount: /tmp/user/0/tmp.6jZSPcYZ7f/tgt: wrong fs type, bad option, bad superblock on /tmp/user/0/tmp.6jZSPcYZ7f/src, missing codepage or helper program, or other error.
+       dmesg(1) may have more information after failed mount system call.
+VERDICT=REFUSED_SAFE
+ok   opt/tgt/dir/'': REFUSED_SAFE
+
+===== flag / tgt / dir / '/' (expect FOLLOWED_VULNERABLE) =====
+  --no-canonicalize, dir-symlink target, TRAILING SLASH (defeats guard)
+mount_rc=0
+mount_stderr=
+VERDICT=FOLLOWED_VULNERABLE
+ok   flag/tgt/dir/'/': FOLLOWED_VULNERABLE
+
+===== opt / tgt / dir / '/' (expect FOLLOWED_VULNERABLE) =====
+  X-mount.nocanonicalize, dir-symlink target, TRAILING SLASH (defeats guard)
+mount_rc=0
+mount_stderr=
+VERDICT=FOLLOWED_VULNERABLE
+ok   opt/tgt/dir/'/': FOLLOWED_VULNERABLE
+
+===== flag / tgt / dir / '/.' (expect FOLLOWED_VULNERABLE) =====
+  --no-canonicalize, dir-symlink target, TRAILING /. (defeats guard)
+mount_rc=0
+mount_stderr=
+VERDICT=FOLLOWED_VULNERABLE
+ok   flag/tgt/dir/'/.': FOLLOWED_VULNERABLE
+
+===== opt / tgt / dir / '/.' (expect FOLLOWED_VULNERABLE) =====
+  X-mount.nocanonicalize, dir-symlink target, TRAILING /. (defeats guard)
+mount_rc=0
+mount_stderr=
+VERDICT=FOLLOWED_VULNERABLE
+ok   opt/tgt/dir/'/.': FOLLOWED_VULNERABLE
+
+===== flag / tgt / file / '' (expect MOUNTED_ON_SYMLINK_NODE) =====
+  --no-canonicalize, FILE-symlink target (not refused; victim untouched)
+mount_rc=0
+mount_stderr=
+VERDICT=MOUNTED_ON_SYMLINK_NODE
+ok   flag/tgt/file/'': MOUNTED_ON_SYMLINK_NODE
+
+===== opt / tgt / file / '' (expect MOUNTED_ON_SYMLINK_NODE) =====
+  X-mount.nocanonicalize, FILE-symlink target (not refused; victim untouched)
+mount_rc=0
+mount_stderr=
+VERDICT=MOUNTED_ON_SYMLINK_NODE
+ok   opt/tgt/file/'': MOUNTED_ON_SYMLINK_NODE
+
+===== plain / src / dir / '' (expect FOLLOWED_VULNERABLE) =====
+  plain bind, symlinked SOURCE
+mount_rc=0
+mount_stderr=
+VERDICT=FOLLOWED_VULNERABLE
+ok   plain/src/dir/'': FOLLOWED_VULNERABLE
+
+===== flag / src / dir / '' (expect FOLLOWED_VULNERABLE) =====
+  --no-canonicalize FOLLOWS a symlinked SOURCE
+mount_rc=0
+mount_stderr=
+VERDICT=FOLLOWED_VULNERABLE
+ok   flag/src/dir/'': FOLLOWED_VULNERABLE
+
+===== opt / src / dir / '' (expect REFUSED_SAFE) =====
+  X-mount.nocanonicalize REFUSES a symlinked SOURCE
+mount_rc=32
+mount_stderr=mount: /tmp/user/0/tmp.20acH7WB46/dst: wrong fs type, bad option, bad superblock on /tmp/user/0/tmp.20acH7WB46/src_link, missing codepage or helper program, or other error.
+       dmesg(1) may have more information after failed mount system call.
+VERDICT=REFUSED_SAFE
+ok   opt/src/dir/'': REFUSED_SAFE
+
+RESULT: PASS (envelope holds: no-canonicalize refuses an exact dir-symlink target and a symlinked source; trailing slash/dot and file-symlink targets are not refused)
