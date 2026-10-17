@@ -13,8 +13,10 @@ its mount-option sibling `X-mount.nocanonicalize`. The headline results:
 This repository is the durable, self-checking proof of that envelope.
 
 Tested: `util-linux 2.41.5` on Debian GNU/Linux 13 (trixie), inside a mount
-namespace. The CI workflow re-runs the same reproduction on GitHub's
-`ubuntu-24.04` on every push. Captured evidence is in `results/`.
+namespace. This behavior is VERSION-SPECIFIC (see "Version dependence" below):
+the refusal exists in util-linux 2.41.x but not in 2.39.3, so CI runs the
+reproduction inside a Debian trixie container (util-linux 2.41.x) on every push,
+not directly on the older-util-linux runner. Captured evidence is in `results/`.
 
 ## This is NOT a mount bug
 
@@ -92,6 +94,18 @@ Takeaways:
 - The guard never protects an intermediate path component (only the final
   component is subject to the no-canonicalize handling).
 
+## Version dependence
+
+The refusal is NOT present in all util-linux versions. On `util-linux 2.39.3`
+(for example Ubuntu 24.04), every row above FOLLOWS -- `--no-canonicalize` and
+`X-mount.nocanonicalize` do not refuse the symlinked target or source at all;
+they behave like a plain `--bind`. The refusals shown here were added in a later
+util-linux and are present in `2.41.5` (Debian trixie, the platform this
+evidence targets). So the mount-layer backstop only exists on new enough
+util-linux; on an older release it provides nothing, which is why a consumer
+must not rely on it as the sole defense, and why CI pins a trixie container
+rather than trusting the runner's util-linux.
+
 ## Run
 
 Prerequisites: a Linux host with `util-linux` `mount` and `unshare`. Each case
@@ -117,11 +131,14 @@ exits:
 
 ## CI
 
-`.github/workflows/repro.yml` runs `sudo ./driver.sh` on `ubuntu-24.04` on
-every push (and on pull requests and manual dispatch). The `push:` trigger is
-deliberate: this org has no required status checks, so a pull-request-only
-workflow would never fire. A util-linux behavior change that moved any verdict
-would turn this job red.
+`.github/workflows/repro.yml` runs the reproduction on every push (and on pull
+requests and manual dispatch). Because the behavior is util-linux-version-
+specific, the job does not run `./driver.sh` directly on the `ubuntu-24.04`
+runner (util-linux 2.39.3); it runs it inside a privileged Debian `trixie`
+container (util-linux 2.41.x), the platform this evidence targets. The `push:`
+trigger is deliberate: this org has no required status checks, so a
+pull-request-only workflow would never fire. A util-linux behavior change that
+moved any verdict would turn this job red.
 
 ## Files
 

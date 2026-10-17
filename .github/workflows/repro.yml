@@ -6,6 +6,14 @@
 ## Living regression guard: re-assert the mount symlink-follow envelope on every
 ## push. push: is REQUIRED -- org-ai-assisted has no required status checks, so a
 ## pull_request-only trigger would never run.
+##
+## The envelope is util-linux-VERSION-SPECIFIC: the no-canonicalize symlink
+## refusal exists in util-linux 2.41.x (Debian trixie, the platform this evidence
+## targets) but NOT in 2.39.3 (Ubuntu 24.04), where every form follows. So the
+## repro runs inside a Debian trixie container (util-linux 2.41.x), not directly
+## on the ubuntu-24.04 runner. Checkout stays on the host so actions/checkout's
+## node runtime is available; only the repro runs in the container, privileged
+## for the mount/namespace capabilities.
 
 name: repro
 
@@ -34,8 +42,10 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
         with:
           persist-credentials: false
-      - name: Run mount symlink-refusal repro (asserts the envelope)
-        ## Root via the runner's passwordless sudo + `unshare --mount` works
-        ## regardless of ubuntu-24.04's AppArmor unprivileged-userns restriction.
-        ## driver.sh exits non-zero if any verdict changes, failing the job.
-        run: sudo ./driver.sh
+      - name: Run repro in a Debian trixie container (util-linux 2.41.x)
+        ## Privileged for CAP_SYS_ADMIN (unshare --mount + mount --bind). The
+        ## container runs as root, so driver.sh uses `unshare --mount` and needs
+        ## no sudo. It exits non-zero if any verdict changes, failing the job.
+        run: |
+          docker run --rm --privileged --volume "${PWD}:/work" --workdir /work \
+            debian:trixie-slim ./driver.sh
