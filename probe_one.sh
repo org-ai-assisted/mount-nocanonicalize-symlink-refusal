@@ -42,6 +42,17 @@ kind="${3:-}"
 suffix="${4:-}"
 
 base="$(mktemp -d)"
+tgt=''
+cleanup() {
+  ## Each probe runs in its own mount namespace, so binds vanish on exit; still
+  ## detach explicitly so the scratch dir is removable, then drop it -- keeps
+  ## /tmp clean across repeated runs.
+  [ -z "${tgt}" ] || umount --lazy -- "${tgt}" 2>/dev/null || true
+  ## style-ok: R-120 -- portable repro: no Kicksecure safe-rm shadow on a stock
+  ## host, so plain rm is intended here.
+  rm --recursive --force -- "${base}" 2>/dev/null || true
+}
+trap cleanup EXIT
 
 if [ "${where}" = src ]; then
   ## Symlinked bind SOURCE; the target is an ordinary directory.
@@ -72,7 +83,7 @@ fi
 ## Keep bind effects inside this namespace.
 mount --make-rprivate / 2>/dev/null || true
 
-err="$(mktemp)"
+err="${base}/mount.err"
 rc=0
 case "${form}" in
   plain)
